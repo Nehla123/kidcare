@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "354342243369",
+    "project_id": "kidcare-87b44",
+    "storage_bucket": "kidcare-87b44.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354342243369:android:2a58cf13f4908547c7e038",
+        "android_client_info": {
+          "package_name": "com.example.kidcare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4yW0ADitXP4CJIV5n9UFxb3DcdLvfMIc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
