@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kidcare/admin/adminlogin.dart';
+import 'package:kidcare/professional/professional%20login.dart';
+import 'package:kidcare/user/userlogin.dart';
 
 class ChooseScreen extends StatefulWidget {
   const ChooseScreen({super.key});
@@ -16,7 +19,7 @@ class _ChooseScreenState extends State<ChooseScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.deepPurple, Colors.purpleAccent],
+            colors: [Color.fromARGB(255, 246, 243, 57), Color.fromARGB(255, 222, 232, 164)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -43,6 +46,18 @@ class _ChooseScreenState extends State<ChooseScreen> {
                 ElevatedButton(
                   onPressed: selectedRole != null
                       ? () {
+                        if(selectedRole=="User")
+                        {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => UserLoginScreen(),));
+                        }
+                        else if(selectedRole=="Admin")
+                        {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => AdminLoginScreen(),));
+                        }
+                        else if(selectedRole=="Professional")
+                        {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => ProfessionalLoginScreen(),));
+                        }
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Proceeding as $selectedRole')),
                           );
@@ -85,8 +100,8 @@ class _ChooseScreenState extends State<ChooseScreen> {
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: selectedRole == title
-              ? Colors.orangeAccent
-              : Colors.deepPurpleAccent,
+              ? const Color.fromRGBO(228, 217, 94, 1)
+              : const Color.fromARGB(255, 221, 221, 219),
           padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),

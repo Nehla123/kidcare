@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,13 +34,35 @@ class _RegistrationFormState extends State<RegistrationForm> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();  // Phone number controller
+  final TextEditingController _dobController = TextEditingController();  // Date of birth controller
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+
+  File? _profileImage;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<void> _removeImage() async {
+    setState(() {
+      _profileImage = null;
+    });
+  }
 
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
@@ -51,10 +76,16 @@ class _RegistrationFormState extends State<RegistrationForm> {
           password: _passwordController.text.trim(),
         );
 
+        String? profileImageUrl;
+
+        // Save user data to Firestore
         await _firestore.collection('users').doc(userCredential.user!.uid).set({
           'firstName': _firstNameController.text.trim(),
           'lastName': _lastNameController.text.trim(),
           'email': _emailController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'dob': _dobController.text.trim(),
+          'profileImageUrl': profileImageUrl,
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -90,6 +121,22 @@ class _RegistrationFormState extends State<RegistrationForm> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _selectDateOfBirth(BuildContext context) async {
+    DateTime currentDate = DateTime.now();
+    DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: currentDate,
+      firstDate: DateTime(1900),
+      lastDate: currentDate,
+    );
+
+    if (selectedDate != null) {
+      setState(() {
+        _dobController.text = "${selectedDate.toLocal()}".split(' ')[0]; // Format date
+      });
     }
   }
 
@@ -131,6 +178,51 @@ class _RegistrationFormState extends State<RegistrationForm> {
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 20),
+                    // Profile Image Section
+                    Center(
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Colors.black,
+                            backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
+                            child: _profileImage == null
+                                ? Icon(Icons.person, size: 50, color: Colors.yellow)
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: IconButton(
+                                icon: Icon(Icons.edit, color: Colors.yellow),
+                                onPressed: _pickImage,
+                              ),
+                            ),
+                          ),
+                          if (_profileImage != null)
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red),
+                                  onPressed: _removeImage,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 20),
                     buildTextFormField(
                       controller: _firstNameController,
                       label: "First Name",
@@ -169,6 +261,37 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         }
                         return null;
                       },
+                    ),
+                    buildTextFormField(
+                      controller: _phoneController,
+                      label: "Phone Number",
+                      icon: Icons.phone,
+                      keyboardType: TextInputType.phone,
+                      autofillHint: AutofillHints.telephoneNumber,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Please enter your phone number";
+                        } else if (value.length < 10) {
+                          return "Phone number must be at least 10 digits";
+                        }
+                        return null;
+                      },
+                    ),
+                    GestureDetector(
+                      onTap: () => _selectDateOfBirth(context),
+                      child: AbsorbPointer(
+                        child: buildTextFormField(
+                          controller: _dobController,
+                          label: "Date of Birth",
+                          icon: Icons.calendar_today,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "Please select your date of birth";
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
                     ),
                     buildTextFormField(
                       controller: _passwordController,
