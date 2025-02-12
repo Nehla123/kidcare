@@ -5,7 +5,7 @@ import 'package:animations/animations.dart';
 class HomePage extends StatelessWidget {
   final String userName;
 
-  HomePage({required this.userName});
+  const HomePage({super.key, required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -51,8 +51,6 @@ class HomePage extends StatelessWidget {
                 _buildFeatureCard(Icons.child_friendly, "Development", context),
                 _buildFeatureCard(Icons.health_and_safety, "Health", context),
                 _buildFeatureCard(Icons.book, "Education", context),
-                _buildFeatureCard(Icons.handshake, "Services", context),
-                _buildFeatureCard(Icons.chat, "Community", context),
               ],
             ),
             SizedBox(height: 20),
@@ -74,7 +72,12 @@ class HomePage extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavButton(Icons.home, "Home", context),
+            IconButton(
+              icon: Icon(Icons.home, color: Colors.white),
+              onPressed: () {
+                Navigator.popUntil(context, (route) => route.isFirst);
+              },
+            ),
             _buildNavButton(Icons.person, "Profile", context),
             _buildNavButton(Icons.support, "Services", context),
             _buildNavButton(Icons.people, "Community", context),
@@ -139,7 +142,7 @@ class HomePage extends StatelessWidget {
 // Placeholder for pages
 class DetailsPage extends StatelessWidget {
   final String title;
-  DetailsPage({required this.title});
+  const DetailsPage({super.key, required this.title});
   
   @override
   Widget build(BuildContext context) {

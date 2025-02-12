@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kidcare/professional/professional%20forgotpage.dart';
 
 class ProfessionalLoginScreen extends StatefulWidget {
   const ProfessionalLoginScreen({super.key});
@@ -127,6 +128,9 @@ class _ProfessionalLoginScreenState extends State<ProfessionalLoginScreen> {
                 // Forgot Password link
                 TextButton(
                   onPressed: () {
+                     {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => ProfessionalForgotPasswordScreen(),));
+                    }
                     // Implement password reset logic here
                   },
                   child: Text(

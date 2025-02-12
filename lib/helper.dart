@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:cloudinary/cloudinary.dart';
 
 Future<String?> uploadImageToCloudinary(String filePath) async {

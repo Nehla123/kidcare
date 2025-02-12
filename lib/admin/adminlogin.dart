@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:kidcare/admin/admin%20forgotpage.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -127,6 +128,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 // Forgot Password link
                 TextButton(
                   onPressed: () {
+                    {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => AdminForgotPasswordScreen(),));
+                    }
                     // Implement password reset logic here
                   },
                   child: Text(

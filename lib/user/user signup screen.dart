@@ -13,6 +13,8 @@ void main() async {
 }
 
 class RegistrationApp extends StatelessWidget {
+  const RegistrationApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -23,6 +25,8 @@ class RegistrationApp extends StatelessWidget {
 }
 
 class RegistrationForm extends StatefulWidget {
+  const RegistrationForm({super.key});
+
   @override
   _RegistrationFormState createState() => _RegistrationFormState();
 }
@@ -340,6 +344,13 @@ class _RegistrationFormState extends State<RegistrationForm> {
                     SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: _isLoading ? null : _register,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        backgroundColor: const Color.fromARGB(255, 243, 235, 122),
+                      ),
                       child: _isLoading
                           ? CircularProgressIndicator(
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -348,13 +359,6 @@ class _RegistrationFormState extends State<RegistrationForm> {
                               "Register",
                               style: TextStyle(fontSize: 18),
                             ),
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        backgroundColor: const Color.fromARGB(255, 243, 235, 122),
-                      ),
                     ),
                   ],
                 ),
@@ -418,6 +422,8 @@ class _RegistrationFormState extends State<RegistrationForm> {
 }
 
 class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
