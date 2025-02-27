@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kidcare/user/user%20forgotpage.dart';
+import 'package:kidcare/user/user%20homescreen.dart';
 
 class UserLoginScreen extends StatefulWidget {
   const UserLoginScreen({super.key});
@@ -15,34 +17,48 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   void _loginUser() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      _showSnackBar("Please fill all fields");
-      return;
-    }
-
-    try {
-      await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      _showSnackBar("Login successful!");
-      // Navigate to another screen, e.g., HomeScreen
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        _showSnackBar("No user found for this email.");
-      } else if (e.code == 'wrong-password') {
-        _showSnackBar("Incorrect password.");
-      } else {
-        _showSnackBar(e.message ?? "An error occurred");
-      }
-    } catch (e) {
-      _showSnackBar("An unexpected error occurred");
-    }
+  if (email.isEmpty || password.isEmpty) {
+    _showSnackBar("Please fill all fields");
+    return;
   }
+
+  try {
+    UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    // Fetch user data from Firestore
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userCredential.user!.uid)
+        .get();
+
+    if (userDoc.exists) {
+      String userName = userDoc['firstName'] + " " + userDoc['lastName'];
+      _showSnackBar("Login successful!");
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage(userName: userName)),
+      );
+    } else {
+      _showSnackBar("User data not found.");
+    }
+  } on FirebaseAuthException catch (e) {
+    if (e.code == 'user-not-found') {
+      _showSnackBar("No user found for this email.");
+    } else if (e.code == 'wrong-password') {
+      _showSnackBar("Incorrect password.");
+    } else {
+      _showSnackBar(e.message ?? "An error occurred");
+    }
+  } catch (e) {
+    _showSnackBar("An unexpected error occurred");
+  }
+}
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(

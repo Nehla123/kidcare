@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
+
 // ignore: depend_on_referenced_packages
 import 'package:animations/animations.dart';
+import 'package:kidcare/user/communitypage.dart';
+import 'package:kidcare/user/development.dart';
+import 'package:kidcare/user/education%20page%20.dart';
+import 'package:kidcare/user/health%20page.dart';
+import 'package:kidcare/user/profilepage.dart';
+import 'package:kidcare/user/servicespage.dart';
 
 class HomePage extends StatelessWidget {
   final String userName;
@@ -35,7 +42,7 @@ class HomePage extends StatelessWidget {
                   style: TextStyle(color: Colors.white, fontSize: 18),
                 ),
               ),
-              openBuilder: (context, action) => DetailsPage(title: "Welcome Info"),
+              openBuilder: (context, action) => Container(), // No need for DetailsPage
             ),
             SizedBox(height: 20),
 
@@ -75,7 +82,7 @@ class HomePage extends StatelessWidget {
             IconButton(
               icon: Icon(Icons.home, color: Colors.white),
               onPressed: () {
-                Navigator.popUntil(context, (route) => route.isFirst);
+               
               },
             ),
             _buildNavButton(Icons.person, "Profile", context),
@@ -93,12 +100,26 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureCard(IconData icon, String title, BuildContext context) {
+       Widget _buildFeatureCard(IconData icon, String title, BuildContext context) {
     return GestureDetector(
       onTap: () {
+        Widget page;
+        switch (title) {
+          case "Development":
+            page = DevelopmentPage();
+            break;
+          case "Health":
+            page = HealthPage();
+            break;
+          case "Education":
+            page = EducationPage();
+            break;
+          default:
+            page = Container(); // Default case
+        }
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => DetailsPage(title: title)),
+          MaterialPageRoute(builder: (context) => page),
         );
       },
       child: Card(
@@ -130,25 +151,27 @@ class HomePage extends StatelessWidget {
     return IconButton(
       icon: Icon(icon, color: Colors.white),
       onPressed: () {
+        Widget page;
+        switch (label) {
+          case "Profile":
+            page = ProfilePage();
+            break;
+          case "Services":
+            page = ServicesPage();
+            break;
+          case "Community":
+            page = CommunityPage();
+            break;
+          default:
+            page = Container(); // Default case
+        }
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => DetailsPage(title: label)),
+          MaterialPageRoute(builder: (context) => page),
         );
       },
     );
   }
 }
 
-// Placeholder for pages
-class DetailsPage extends StatelessWidget {
-  final String title;
-  const DetailsPage({super.key, required this.title});
-  
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(child: Text("Welcome to $title Page")),
-    );
-  }
-}
+

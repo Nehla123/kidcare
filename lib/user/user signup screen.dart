@@ -1,15 +1,21 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloudinary/cloudinary.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+import 'package:kidcare/user/userlogin.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(RegistrationApp());
+  runApp(const RegistrationApp());
 }
 
 class RegistrationApp extends StatelessWidget {
@@ -19,7 +25,7 @@ class RegistrationApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: RegistrationForm(),
+      home: const RegistrationForm(),
     );
   }
 }
@@ -38,26 +44,24 @@ class _RegistrationFormState extends State<RegistrationForm> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();  // Phone number controller
-  final TextEditingController _dobController = TextEditingController();  // Date of birth controller
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final ImagePicker _picker = ImagePicker();
 
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
 
-  File? _profileImage;
-  final ImagePicker _picker = ImagePicker();
+  XFile? _profileImage;
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-
     if (pickedFile != null) {
       setState(() {
-        _profileImage = File(pickedFile.path);
+        _profileImage = pickedFile;
       });
     }
   }
@@ -67,6 +71,35 @@ class _RegistrationFormState extends State<RegistrationForm> {
       _profileImage = null;
     });
   }
+
+Future<String?> _uploadToCloudinary(XFile imageFile) async {
+  final url = Uri.parse("https://api.cloudinary.com/v1_1/dykp7wmhj/image/upload");
+  
+  Uint8List imageBytes = await imageFile.readAsBytes(); // Read image as bytes
+  var request = http.MultipartRequest("POST", url)
+    ..fields['upload_preset'] = "kids care images"  // Your Cloudinary preset
+    ..files.add(http.MultipartFile.fromBytes(
+      "file", 
+      imageBytes, 
+      filename: imageFile.name, // Set filename
+      
+    ));
+
+  try {
+    var response = await request.send();
+    if (response.statusCode == 200) {
+      var responseData = jsonDecode(await response.stream.bytesToString());
+      return responseData["secure_url"];
+    } else {
+      print("Cloudinary Upload Failed: ${response.statusCode}");
+      return null;
+    }
+  } catch (e) {
+    print("Error uploading to Cloudinary: $e");
+    return null;
+  }
+}
+
 
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
@@ -80,9 +113,12 @@ class _RegistrationFormState extends State<RegistrationForm> {
           password: _passwordController.text.trim(),
         );
 
-        String? profileImageUrl;
+       String? profileImageUrl;
+if (_profileImage != null) {
+  profileImageUrl = await _uploadToCloudinary(_profileImage!); 
+}
 
-        // Save user data to Firestore
+
         await _firestore.collection('users').doc(userCredential.user!.uid).set({
           'firstName': _firstNameController.text.trim(),
           'lastName': _lastNameController.text.trim(),
@@ -96,29 +132,13 @@ class _RegistrationFormState extends State<RegistrationForm> {
           SnackBar(content: Text("Registration Successful! Welcome, ${_firstNameController.text}.")),
         );
 
-        // Navigate to the login screen
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
-      } on FirebaseAuthException catch (e) {
-        print(e);
-        String errorMessage;
-        if (e.code == 'email-already-in-use') {
-          errorMessage = 'The email is already registered. Try logging in.';
-        } else if (e.code == 'invalid-email') {
-          errorMessage = 'Invalid email format. Please check your input.';
-        } else if (e.code == 'weak-password') {
-          errorMessage = 'The password is too weak. Use a stronger password.';
-        } else {
-          errorMessage = 'Registration failed. Please try again later.';
-        }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $errorMessage")),
+          MaterialPageRoute(builder: (context) => const UserLoginScreen()),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("An unexpected error occurred: ${e.toString()}")),
+          SnackBar(content: Text("Error: ${e.toString()}")),
         );
       } finally {
         setState(() {
@@ -129,17 +149,16 @@ class _RegistrationFormState extends State<RegistrationForm> {
   }
 
   Future<void> _selectDateOfBirth(BuildContext context) async {
-    DateTime currentDate = DateTime.now();
     DateTime? selectedDate = await showDatePicker(
       context: context,
-      initialDate: currentDate,
+      initialDate: DateTime.now(),
       firstDate: DateTime(1900),
-      lastDate: currentDate,
+      lastDate: DateTime.now(),
     );
 
     if (selectedDate != null) {
       setState(() {
-        _dobController.text = "${selectedDate.toLocal()}".split(' ')[0]; // Format date
+        _dobController.text = "${selectedDate.toLocal()}".split(' ')[0];
       });
     }
   }
@@ -147,221 +166,74 @@ class _RegistrationFormState extends State<RegistrationForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("User Registration"),
-        centerTitle: true,
-        backgroundColor: const Color.fromARGB(255, 243, 235, 122),
-      ),
+      appBar: AppBar(title: const Text("User Registration"), centerTitle: true),
       body: SingleChildScrollView(
-        child: Container(
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white, Colors.yellow.shade100, Colors.yellow.shade200],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-          child: Card(
-            elevation: 10.0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      "Register",
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 20),
-                    // Profile Image Section
-                    Center(
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.black,
-                            backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
-                            child: _profileImage == null
-                                ? Icon(Icons.person, size: 50, color: Colors.yellow)
-                                : null,
+        padding: const EdgeInsets.all(16.0),
+        child: Card(
+          elevation: 10.0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text("Register", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                  const SizedBox(height: 20),
+                  
+                  // Profile Image Upload
+                  Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundImage: _profileImage != null ? FileImage(File(_profileImage!.path)) : null,
+                          child: _profileImage == null ? const Icon(Icons.person, size: 50) : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: IconButton(
+                            icon: const Icon(Icons.camera_alt),
+                            onPressed: _pickImage,
                           ),
+                        ),
+                        if (_profileImage != null)
                           Positioned(
-                            bottom: 0,
+                            top: 0,
                             right: 0,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: IconButton(
-                                icon: Icon(Icons.edit, color: Colors.yellow),
-                                onPressed: _pickImage,
-                              ),
+                            child: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: _removeImage,
                             ),
                           ),
-                          if (_profileImage != null)
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: IconButton(
-                                  icon: Icon(Icons.delete, color: Colors.red),
-                                  onPressed: _removeImage,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                      ],
                     ),
-                    SizedBox(height: 20),
-                    buildTextFormField(
-                      controller: _firstNameController,
-                      label: "First Name",
-                      icon: Icons.person,
-                      autofillHint: AutofillHints.givenName,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Please enter your first name";
-                        }
-                        return null;
-                      },
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  buildTextFormField(controller: _firstNameController, label: "First Name", icon: Icons.person),
+                  buildTextFormField(controller: _lastNameController, label: "Last Name", icon: Icons.person_outline),
+                  buildTextFormField(controller: _emailController, label: "Email", icon: Icons.email, keyboardType: TextInputType.emailAddress),
+                  buildTextFormField(controller: _phoneController, label: "Phone", icon: Icons.phone, keyboardType: TextInputType.phone),
+                  
+                  GestureDetector(
+                    onTap: () => _selectDateOfBirth(context),
+                    child: AbsorbPointer(
+                      child: buildTextFormField(controller: _dobController, label: "Date of Birth", icon: Icons.calendar_today),
                     ),
-                    buildTextFormField(
-                      controller: _lastNameController,
-                      label: "Last Name",
-                      icon: Icons.person_outline,
-                      autofillHint: AutofillHints.familyName,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Please enter your last name";
-                        }
-                        return null;
-                      },
-                    ),
-                    buildTextFormField(
-                      controller: _emailController,
-                      label: "Email",
-                      icon: Icons.email,
-                      keyboardType: TextInputType.emailAddress,
-                      autofillHint: AutofillHints.email,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Please enter your email";
-                        } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                          return "Please enter a valid email";
-                        }
-                        return null;
-                      },
-                    ),
-                    buildTextFormField(
-                      controller: _phoneController,
-                      label: "Phone Number",
-                      icon: Icons.phone,
-                      keyboardType: TextInputType.phone,
-                      autofillHint: AutofillHints.telephoneNumber,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Please enter your phone number";
-                        } else if (value.length < 10) {
-                          return "Phone number must be at least 10 digits";
-                        }
-                        return null;
-                      },
-                    ),
-                    GestureDetector(
-                      onTap: () => _selectDateOfBirth(context),
-                      child: AbsorbPointer(
-                        child: buildTextFormField(
-                          controller: _dobController,
-                          label: "Date of Birth",
-                          icon: Icons.calendar_today,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Please select your date of birth";
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ),
-                    buildTextFormField(
-                      controller: _passwordController,
-                      label: "Password",
-                      icon: Icons.lock,
-                      obscureText: !_isPasswordVisible,
-                      suffixIcon: IconButton(
-                        icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Please enter a password";
-                        } else if (value.length < 6) {
-                          return "Password must be at least 6 characters long";
-                        }
-                        return null;
-                      },
-                    ),
-                    buildTextFormField(
-                      controller: _confirmPasswordController,
-                      label: "Confirm Password",
-                      icon: Icons.lock_outline,
-                      obscureText: !_isConfirmPasswordVisible,
-                      suffixIcon: IconButton(
-                        icon: Icon(_isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () {
-                          setState(() {
-                            _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                          });
-                        },
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Please confirm your password";
-                        } else if (value != _passwordController.text) {
-                          return "Passwords do not match";
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _register,
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        backgroundColor: const Color.fromARGB(255, 243, 235, 122),
-                      ),
-                      child: _isLoading
-                          ? CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            )
-                          : Text(
-                              "Register",
-                              style: TextStyle(fontSize: 18),
-                            ),
-                    ),
-                  ],
-                ),
+                  ),
+                  
+                  buildTextFormField(controller: _passwordController, label: "Password", icon: Icons.lock, obscureText: true),
+                  buildTextFormField(controller: _confirmPasswordController, label: "Confirm Password", icon: Icons.lock_outline, obscureText: true),
+                  
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _register,
+                    child: _isLoading ? const CircularProgressIndicator() : const Text("Register", style: TextStyle(fontSize: 18)),
+                  ),
+                ],
               ),
             ),
           ),
@@ -370,69 +242,14 @@ class _RegistrationFormState extends State<RegistrationForm> {
     );
   }
 
-  Widget buildTextFormField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    String? autofillHint,
-    TextInputType keyboardType = TextInputType.text,
-    bool obscureText = false,
-    Widget? suffixIcon,
-    String? Function(String?)? validator,
-  }) {
+  Widget buildTextFormField({required TextEditingController controller, required String label, required IconData icon, bool obscureText = false, TextInputType keyboardType = TextInputType.text}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Container(
-            height: 50,
-            width: 50,
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: Colors.yellow),
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: TextFormField(
-              controller: controller,
-              keyboardType: keyboardType,
-              obscureText: obscureText,
-              autofillHints: autofillHint != null ? [autofillHint] : null,
-              decoration: InputDecoration(
-                labelText: label,
-                labelStyle: TextStyle(color: Colors.black),
-                suffixIcon: suffixIcon,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black, width: 2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              validator: validator,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Login"),
-        backgroundColor: Colors.black,
-      ),
-      body: Center(
-        child: Text("Login Screen Placeholder"),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon), border: OutlineInputBorder()),
       ),
     );
   }
