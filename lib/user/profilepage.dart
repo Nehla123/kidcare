@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:kidcare/user/editprofilescreen.dart';
+import 'package:kidcare/user/userlogin.dart';
+
 
 class ProfilePage extends StatelessWidget {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -18,7 +21,23 @@ class ProfilePage extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text("Profile")),
+      appBar: AppBar(
+        title: Text("Profile"),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.edit),
+            onPressed: () {
+              // Navigate to EditProfilePage and pass userId
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditProfilePage(userId: user.uid),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: FutureBuilder<DocumentSnapshot>(
         future: _firestore.collection('users').doc(user.uid).get(),
         builder: (context, snapshot) {
@@ -56,6 +75,25 @@ class ProfilePage extends StatelessWidget {
                 Text("Phone: ${userData['phone'] ?? 'N/A'}", style: TextStyle(fontSize: 16)),
                 SizedBox(height: 10),
                 Text("DOB: ${userData['dob'] ?? 'N/A'}", style: TextStyle(fontSize: 16)),
+                Spacer(),
+               Center(
+  child: ElevatedButton.icon(
+    onPressed: ()  {
+  
+        // Navigator.of(context).pushAndRemoveUntil(
+        //   MaterialPageRoute(builder: (context) => ()),
+        //   (Route<dynamic> route) => false,
+        // );
+
+    },
+    icon: Icon(Icons.logout),
+    label: Text("Logout"),
+    style: ElevatedButton.styleFrom(
+      padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+    ),
+  ),
+),
+
               ],
             ),
           );

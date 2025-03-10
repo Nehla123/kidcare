@@ -74,7 +74,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          "User Login",
+          " Login",
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,

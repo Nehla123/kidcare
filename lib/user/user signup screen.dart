@@ -126,16 +126,15 @@ if (_profileImage != null) {
           'phone': _phoneController.text.trim(),
           'dob': _dobController.text.trim(),
           'profileImageUrl': profileImageUrl,
+          'approve' : false,
+          'role': 'user',
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Registration Successful! Welcome, ${_firstNameController.text}.")),
         );
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const UserLoginScreen()),
-        );
+       
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Error: ${e.toString()}")),

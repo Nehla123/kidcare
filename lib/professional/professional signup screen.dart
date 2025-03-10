@@ -70,7 +70,9 @@ class _ProfessionalRegistrationFormState extends State<ProfessionalRegistrationF
           'phone': _phoneController.text.trim(),
           'dob': _dobController.text.trim(),
           'profileImage': _profileImage != null ? _profileImage!.path : "",
-        });
+          'approve': false,
+          'role': 'professional',
+                  });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Registration Successful! Welcome, ${_nameController.text}.", textAlign: TextAlign.center)),

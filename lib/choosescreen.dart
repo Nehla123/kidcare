@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kidcare/admin/adminlogin.dart';
-import 'package:kidcare/professional/professional%20login.dart';
+import 'package:kidcare/professional/professional%20signup%20screen.dart';
+import 'package:kidcare/user/user%20signup%20screen.dart';
 import 'package:kidcare/user/userlogin.dart';
+
 
 class ChooseScreen extends StatefulWidget {
   const ChooseScreen({super.key});
@@ -19,7 +20,7 @@ class _ChooseScreenState extends State<ChooseScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 246, 243, 57), Color.fromARGB(255, 222, 232, 164)],
+            colors: [Color.fromARGB(255, 31, 15, 150), Color.fromARGB(248, 182, 180, 239)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -31,41 +32,35 @@ class _ChooseScreenState extends State<ChooseScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                  "Choose Your Role",
+                  "Welcome to KidCare",
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 30),
-                _buildRoleButton("Admin", Icons.admin_panel_settings),
+                Text(
+  "Guiding Little Steps, Empowering Big Hearts",
+  style: TextStyle(
+    fontSize: 12,
+    fontStyle: FontStyle.italic,
+    color: Colors.white,
+  ),
+),
+
                 _buildRoleButton("User", Icons.person),
                 _buildRoleButton("Professional", Icons.business_center),
                 const SizedBox(height: 40),
                 ElevatedButton(
-                  onPressed: selectedRole != null
-                      ? () {
-                        if(selectedRole=="User")
-                        {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => UserLoginScreen(),));
-                        }
-                        else if(selectedRole=="Admin")
-                        {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => AdminLoginScreen(),));
-                        }
-                        else if(selectedRole=="Professional")
-                        {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => ProfessionalLoginScreen(),));
-                        }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Proceeding as $selectedRole')),
-                          );
-                          // Navigate based on role
-                        }
-                      : null,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => UserLoginScreen()),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
+                    backgroundColor: Colors.orange,
                     padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 40.0),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
@@ -73,7 +68,7 @@ class _ChooseScreenState extends State<ChooseScreen> {
                     elevation: 5,
                   ),
                   child: const Text(
-                    'Continue',
+                    'Login',
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -94,9 +89,17 @@ class _ChooseScreenState extends State<ChooseScreen> {
       padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: ElevatedButton(
         onPressed: () {
-          setState(() {
-            selectedRole = title;
-          });
+          if (title == "User") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => RegistrationApp()),
+            );
+          } else if (title == "Professional") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfessionalRegistrationApp()),
+            );
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: selectedRole == title
