@@ -26,7 +26,6 @@ class HomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Welcome Banner with Animation
             OpenContainer(
               closedElevation: 0,
               closedColor: Colors.blueAccent,
@@ -42,11 +41,9 @@ class HomePage extends StatelessWidget {
                   style: TextStyle(color: Colors.white, fontSize: 18),
                 ),
               ),
-              openBuilder: (context, action) => Container(), // No need for DetailsPage
+              openBuilder: (context, action) => Container(),
             ),
             SizedBox(height: 20),
-
-            // Animated Grid
             GridView.count(
               shrinkWrap: true,
               physics: NeverScrollableScrollPhysics(),
@@ -61,18 +58,21 @@ class HomePage extends StatelessWidget {
               ],
             ),
             SizedBox(height: 20),
-
-            // Recent Updates with Animation
             Text("Recent Updates", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
             _buildRecentUpdate("Child reached a new milestone! 🎉"),
             _buildRecentUpdate("Upcoming vaccination reminder."),
             _buildRecentUpdate("New educational activity available."),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                // Navigate to feedback page or show feedback form
+              },
+              child: Text("Give Feedback"),
+            ),
           ],
         ),
       ),
-      
-      // Bottom Navigation Bar with Buttons
       bottomNavigationBar: BottomAppBar(
         shape: CircularNotchedRectangle(),
         color: Colors.blueAccent,
@@ -81,9 +81,7 @@ class HomePage extends StatelessWidget {
           children: [
             IconButton(
               icon: Icon(Icons.home, color: Colors.white),
-              onPressed: () {
-               
-              },
+              onPressed: () {},
             ),
             _buildNavButton(Icons.person, "Profile", context),
             _buildNavButton(Icons.support, "Services", context),
@@ -100,7 +98,7 @@ class HomePage extends StatelessWidget {
     );
   }
 
-       Widget _buildFeatureCard(IconData icon, String title, BuildContext context) {
+  Widget _buildFeatureCard(IconData icon, String title, BuildContext context) {
     return GestureDetector(
       onTap: () {
         Widget page;
@@ -115,7 +113,7 @@ class HomePage extends StatelessWidget {
             page = EducationPage();
             break;
           default:
-            page = Container(); // Default case
+            page = Container();
         }
         Navigator.push(
           context,
@@ -163,7 +161,7 @@ class HomePage extends StatelessWidget {
             page = CommunityPage();
             break;
           default:
-            page = Container(); // Default case
+            page = Container();
         }
         Navigator.push(
           context,
@@ -173,5 +171,3 @@ class HomePage extends StatelessWidget {
     );
   }
 }
-
-
