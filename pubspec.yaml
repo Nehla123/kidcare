@@ -45,6 +45,7 @@ dependencies:
   apsl_ads_flutter_kids: ^1.0.3
   intl: ^0.20.2
   lottie: ^3.3.1
+  flutter_rating_bar: ^4.0.1
 
 dev_dependencies:
   flutter_test:

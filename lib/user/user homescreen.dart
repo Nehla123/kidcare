@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 // ignore: depend_on_referenced_packages
 import 'package:animations/animations.dart';
+import 'package:kidcare/admin/adminhomepage.dart';
 import 'package:kidcare/user/communitypage.dart';
 import 'package:kidcare/user/development.dart';
 import 'package:kidcare/user/education%20page%20.dart';
@@ -65,10 +66,13 @@ class HomePage extends StatelessWidget {
             _buildRecentUpdate("New educational activity available."),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                // Navigate to feedback page or show feedback form
-              },
-              child: Text("Give Feedback"),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => FeedbackPage()),
+        );
+       },
+         child: Text("Give Feedback"),
             ),
           ],
         ),
@@ -160,6 +164,9 @@ class HomePage extends StatelessWidget {
           case "Community":
             page = CommunityPage();
             break;
+          case "Give Feedback":
+            page = FeedbackPage();
+            break;  
           default:
             page = Container();
         }
