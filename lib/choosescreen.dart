@@ -92,12 +92,12 @@ class _ChooseScreenState extends State<ChooseScreen> {
           if (title == "User") {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => RegistrationApp()),
+              MaterialPageRoute(builder: (context) => UserSignupScreen()),
             );
           } else if (title == "Professional") {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ProfessionalRegistrationApp()),
+              MaterialPageRoute(builder: (context) =>ProfessionalRegistrationForm()),
             );
           }
         },

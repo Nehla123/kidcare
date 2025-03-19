@@ -6,24 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloudinary/cloudinary.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(ProfessionalRegistrationApp());
-}
-
-class ProfessionalRegistrationApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: ProfessionalRegistrationForm(),
-      theme: ThemeData(primarySwatch: Colors.blue),
-    );
-  }
-}
-
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 class ProfessionalRegistrationForm extends StatefulWidget {
   @override
   _ProfessionalRegistrationFormState createState() => _ProfessionalRegistrationFormState();

@@ -1,254 +1,287 @@
-import 'dart:typed_data';
-
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:cloudinary/cloudinary.dart';
-import 'dart:io';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
-import 'package:kidcare/user/userlogin.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const RegistrationApp());
-}
-
-class RegistrationApp extends StatelessWidget {
-  const RegistrationApp({super.key});
+class UserSignupScreen extends StatefulWidget {
+  const UserSignupScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: const RegistrationForm(),
-    );
-  }
+  _UserSignupScreenState createState() => _UserSignupScreenState();
 }
 
-class RegistrationForm extends StatefulWidget {
-  const RegistrationForm({super.key});
-
-  @override
-  _RegistrationFormState createState() => _RegistrationFormState();
-}
-
-class _RegistrationFormState extends State<RegistrationForm> {
-  final _formKey = GlobalKey<FormState>();
+class _UserSignupScreenState extends State<UserSignupScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
-
+  final ImagePicker _picker = ImagePicker();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final ImagePicker _picker = ImagePicker();
 
+  Uint8List? _profileImage;
   bool _isLoading = false;
-  bool _isPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
 
-  XFile? _profileImage;
+  @override
+  void dispose() {
+    super.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
+    _dobController.dispose();
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
+      Uint8List imageBytes = await pickedFile.readAsBytes();
       setState(() {
-        _profileImage = pickedFile;
+        _profileImage = imageBytes;
       });
+    } else {
+      _showSnackBar("No image selected");
     }
   }
 
-  Future<void> _removeImage() async {
-    setState(() {
-      _profileImage = null;
-    });
-  }
 
-Future<String?> _uploadToCloudinary(XFile imageFile) async {
-  final url = Uri.parse("https://api.cloudinary.com/v1_1/dykp7wmhj/image/upload");
-  
-  Uint8List imageBytes = await imageFile.readAsBytes(); // Read image as bytes
-  var request = http.MultipartRequest("POST", url)
-    ..fields['upload_preset'] = "kids care images"  // Your Cloudinary preset
-    ..files.add(http.MultipartFile.fromBytes(
-      "file", 
-      imageBytes, 
-      filename: imageFile.name, // Set filename
-      
-    ));
+  Future<String?> _uploadProfileImage() async {
+    if (_profileImage == null) return null;
 
-  try {
-    var response = await request.send();
-    if (response.statusCode == 200) {
-      var responseData = jsonDecode(await response.stream.bytesToString());
-      return responseData["secure_url"];
-    } else {
-      print("Cloudinary Upload Failed: ${response.statusCode}");
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.cloudinary.com/v1_1/drj5snlmt/image/upload'),
+      );
+
+      request.fields['upload_preset'] = 'profile_images';
+      request.files.add(http.MultipartFile.fromBytes('file', _profileImage!, filename: 'profile.jpg'));
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var jsonData = jsonDecode(responseData);
+        return jsonData['secure_url'];
+      } else {
+        _showSnackBar("Image upload failed");
+        return null;
+      }
+    } catch (e) {
+      print("Cloudinary upload error: $e");
       return null;
     }
-  } catch (e) {
-    print("Error uploading to Cloudinary: $e");
-    return null;
-  }
-}
-
-
-  Future<void> _register() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      try {
-        UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-
-       String? profileImageUrl;
-if (_profileImage != null) {
-  profileImageUrl = await _uploadToCloudinary(_profileImage!); 
-}
-
-
-        await _firestore.collection('users').doc(userCredential.user!.uid).set({
-          'firstName': _firstNameController.text.trim(),
-          'lastName': _lastNameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'dob': _dobController.text.trim(),
-          'profileImageUrl': profileImageUrl,
-          'approve' : false,
-          'role': 'user',
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Registration Successful! Welcome, ${_firstNameController.text}.")),
-        );
-
-       
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${e.toString()}")),
-        );
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
   }
 
+  
   Future<void> _selectDateOfBirth(BuildContext context) async {
-    DateTime? selectedDate = await showDatePicker(
+    DateTime initialDate = DateTime.now();
+    final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: initialDate,
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
-
-    if (selectedDate != null) {
+    if (picked != null) {
       setState(() {
-        _dobController.text = "${selectedDate.toLocal()}".split(' ')[0];
+        _dobController.text = "${picked.toLocal()}".split(' ')[0];
       });
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("User Registration"), centerTitle: true),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Card(
-          elevation: 10.0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text("Register", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                  const SizedBox(height: 20),
-                  
-                  // Profile Image Upload
-                  Center(
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundImage: _profileImage != null ? FileImage(File(_profileImage!.path)) : null,
-                          child: _profileImage == null ? const Icon(Icons.person, size: 50) : null,
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: IconButton(
-                            icon: const Icon(Icons.camera_alt),
-                            onPressed: _pickImage,
-                          ),
-                        ),
-                        if (_profileImage != null)
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: _removeImage,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  buildTextFormField(controller: _firstNameController, label: "First Name", icon: Icons.person),
-                  buildTextFormField(controller: _lastNameController, label: "Last Name", icon: Icons.person_outline),
-                  buildTextFormField(controller: _emailController, label: "Email", icon: Icons.email, keyboardType: TextInputType.emailAddress),
-                  buildTextFormField(controller: _phoneController, label: "Phone", icon: Icons.phone, keyboardType: TextInputType.phone),
-                  
-                  GestureDetector(
-                    onTap: () => _selectDateOfBirth(context),
-                    child: AbsorbPointer(
-                      child: buildTextFormField(controller: _dobController, label: "Date of Birth", icon: Icons.calendar_today),
-                    ),
-                  ),
-                  
-                  buildTextFormField(controller: _passwordController, label: "Password", icon: Icons.lock, obscureText: true),
-                  buildTextFormField(controller: _confirmPasswordController, label: "Confirm Password", icon: Icons.lock_outline, obscureText: true),
-                  
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _register,
-                    child: _isLoading ? const CircularProgressIndicator() : const Text("Register", style: TextStyle(fontSize: 18)),
-                  ),
-                ],
-              ),
-            ),
-          ),
+  void _signUpUser() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+    final phone = _phoneController.text.trim();
+    final dob = _dobController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty || phone.isEmpty || dob.isEmpty) {
+      _showSnackBar("Please fill all fields");
+      return;
+    }
+
+    if (password != confirmPassword) {
+      _showSnackBar("Passwords do not match");
+      return;
+    }
+
+    try {
+      final userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      final uid = userCredential.user?.uid;
+
+      String? profileImageUrl = await _uploadProfileImage();
+
+      await _firestore.collection('users').doc(uid).set({
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'dob': dob,
+        'uid': uid,
+        'profileImage': profileImageUrl,
+        'role':'user',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      _showSnackBar("Sign up successful!");
+     
+    } on FirebaseAuthException catch (e) {
+      _showSnackBar(e.message ?? "An error occurred");
+    } catch (e) {
+      _showSnackBar("An unexpected error occurred");
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool obscureText = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.grey[700]),
+          labelText: label,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
     );
   }
 
-  Widget buildTextFormField({required TextEditingController controller, required String label, required IconData icon, bool obscureText = false, TextInputType keyboardType = TextInputType.text}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        obscureText: obscureText,
-        decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon), border: OutlineInputBorder()),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF3F2B96),
+              Color(0xFFA8C0FF),
+            ],
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                "Create Your Account",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                "Guiding Little Steps, Empowering Big Hearts",
+                style: TextStyle(
+                  fontStyle: FontStyle.italic,
+                  color: Colors.white70,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 24),
+
+              // Profile Image
+              GestureDetector(
+                onTap: _pickImage,
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage:
+                      _profileImage != null ? MemoryImage(_profileImage!) : null,
+                  child: _profileImage == null
+                      ? Icon(Icons.camera_alt, color: Colors.grey[700], size: 30)
+                      : null,
+                ),
+              ),
+              SizedBox(height: 20),
+
+              // Input Fields
+              _buildTextField(controller: _nameController, label: 'Full Name', icon: Icons.person),
+              SizedBox(height: 16),
+              _buildTextField(controller: _emailController, label: 'Email Address', icon: Icons.email, keyboardType: TextInputType.emailAddress),
+              SizedBox(height: 16),
+              _buildTextField(controller: _phoneController, label: 'Phone Number', icon: Icons.phone, keyboardType: TextInputType.phone),
+              SizedBox(height: 16),
+              GestureDetector(
+                onTap: () => _selectDateOfBirth(context),
+                child: AbsorbPointer(
+                  child: _buildTextField(controller: _dobController, label: 'Date of Birth', icon: Icons.calendar_today),
+                ),
+              ),
+              SizedBox(height: 16),
+              _buildTextField(controller: _passwordController, label: 'Password', icon: Icons.lock, obscureText: true),
+              SizedBox(height: 16),
+              _buildTextField(controller: _confirmPasswordController, label: 'Confirm Password', icon: Icons.lock, obscureText: true),
+              SizedBox(height: 30),
+
+              // Sign Up Button
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFFFFA726),
+                      Color(0xFFFF7043),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 4,
+                      offset: Offset(2, 2),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _signUpUser,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          "Sign Up",
+                          style: TextStyle(fontSize: 18),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
