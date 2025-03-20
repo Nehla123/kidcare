@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,20 +9,22 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cloudinary/cloudinary.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+
 class ProfessionalRegistrationForm extends StatefulWidget {
   @override
-  _ProfessionalRegistrationFormState createState() => _ProfessionalRegistrationFormState();
+  _ProfessionalRegistrationFormState createState() =>
+      _ProfessionalRegistrationFormState();
 }
 
-class _ProfessionalRegistrationFormState extends State<ProfessionalRegistrationForm> {
+class _ProfessionalRegistrationFormState
+    extends State<ProfessionalRegistrationForm> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool _isLoading = false;
-  File? _profileImage;
-  String? _imageUrl;
 
   final _controllers = {
     'name': TextEditingController(),
@@ -40,28 +44,45 @@ class _ProfessionalRegistrationFormState extends State<ProfessionalRegistrationF
     'Childcare & Miscellaneous',
   ];
   final List<bool> _selectedServices = List.filled(5, false);
-
-  Future<String?> getCloudinaryUrl(String image) async {
-    final cloudinary = Cloudinary.signedConfig(
-      cloudName: 'drj5snlmt',
-      apiKey: '184672487928537',
-      apiSecret: 'PJBrriaNt_ciEUVzVQAvSupxlsg',
-    );
-
-    final response = await cloudinary.upload(
-      file: image,
-      resourceType: CloudinaryResourceType.image,
-    );
-    return response.secureUrl;
+  Uint8List? _profileImage;
+  final ImagePicker _picker = ImagePicker();
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      Uint8List imageBytes = await pickedFile.readAsBytes();
+      setState(() {
+        _profileImage = imageBytes;
+      });
+    } else {
+      _showSnackBar("No image selected");
+    }
   }
 
-  Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path);
-      });
-      _imageUrl = await getCloudinaryUrl(pickedFile.path);
+  Future<String?> _uploadProfileImage() async {
+    if (_profileImage == null) return null;
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.cloudinary.com/v1_1/drj5snlmt/image/upload'),
+      );
+
+      request.fields['upload_preset'] = 'profile_images';
+      request.files.add(http.MultipartFile.fromBytes('file', _profileImage!,
+          filename: 'profile.jpg'));
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var jsonData = jsonDecode(responseData);
+        return jsonData['secure_url'];
+      } else {
+        _showSnackBar("Image upload failed");
+        return null;
+      }
+    } catch (e) {
+      print("Cloudinary upload error: $e");
+      return null;
     }
   }
 
@@ -75,25 +96,31 @@ class _ProfessionalRegistrationFormState extends State<ProfessionalRegistrationF
       ];
 
       try {
-        UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        UserCredential userCredential =
+            await _auth.createUserWithEmailAndPassword(
           email: _controllers['email']!.text.trim(),
           password: _controllers['password']!.text.trim(),
         );
-
-        await _firestore.collection('professionals').doc(userCredential.user!.uid).set({
+  String? profileImageUrl = await _uploadProfileImage();
+        await _firestore
+            .collection('professionals')
+            .doc(userCredential.user!.uid)
+            .set({
           'name': _controllers['name']!.text.trim(),
           'email': _controllers['email']!.text.trim(),
           'qualification': _controllers['qualification']!.text.trim(),
           'phone': _controllers['phone']!.text.trim(),
           'dob': _controllers['dob']!.text.trim(),
           'services': selectedServices,
-          'profileImage': _imageUrl ?? '',
-          'approve': true,
+          'profileImage': profileImageUrl ?? '',
+          'approve': false,
           'role': 'professional',
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration Successful! Welcome, ${_controllers['name']!.text}.')),
+          SnackBar(
+              content: Text(
+                  'Registration Successful! Welcome, ${_controllers['name']!.text}.')),
         );
       } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -125,48 +152,28 @@ class _ProfessionalRegistrationFormState extends State<ProfessionalRegistrationF
     );
   }
 
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Widget _buildProfileImagePicker() {
     return Center(
       child: Stack(
         children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundColor: Colors.grey[300],
-            backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
-            child: _profileImage == null ? Icon(Icons.camera_alt, size: 40) : null,
+        GestureDetector(
+          onTap: _pickImage,
+            child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.grey.shade300,
+                    backgroundImage:
+                        _profileImage != null ? MemoryImage(_profileImage!) : null,
+                    child: _profileImage == null
+                        ? Icon(Icons.camera_alt, color: Colors.grey[700], size: 30)
+                        : null,
+                  ),
           ),
-          // Edit Icon
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: GestureDetector(
-              onTap: _pickImage,
-              child: CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.blue,
-                child: Icon(Icons.edit, size: 16, color: Colors.white),
-              ),
-            ),
-          ),
-          // Delete Icon (only shown if a profile image is selected)
-          if (_profileImage != null)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _profileImage = null;
-                    _imageUrl = null;
-                  });
-                },
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Colors.red,
-                  child: Icon(Icons.delete, size: 16, color: Colors.white),
-                ),
-              ),
-            ),
+    
         ],
       ),
     );
@@ -206,7 +213,8 @@ class _ProfessionalRegistrationFormState extends State<ProfessionalRegistrationF
         );
         if (pickedDate != null) {
           setState(() {
-            _controllers['dob']!.text = '${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}';
+            _controllers['dob']!.text =
+                '${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}';
           });
         }
       },
@@ -227,25 +235,30 @@ class _ProfessionalRegistrationFormState extends State<ProfessionalRegistrationF
               SizedBox(height: 20),
               _buildTextField('Full Name', 'name', Icons.person),
               SizedBox(height: 10),
-              _buildTextField('Email', 'email', Icons.email, type: TextInputType.emailAddress),
+              _buildTextField('Email', 'email', Icons.email,
+                  type: TextInputType.emailAddress),
               SizedBox(height: 10),
               _buildTextField('Qualification', 'qualification', Icons.school),
               SizedBox(height: 10),
-              _buildTextField('Phone Number', 'phone', Icons.phone, type: TextInputType.phone),
+              _buildTextField('Phone Number', 'phone', Icons.phone,
+                  type: TextInputType.phone),
               SizedBox(height: 10),
               _buildDatePicker(),
               SizedBox(height: 10),
-              _buildTextField('Password', 'password', Icons.lock, obscure: true),
+              _buildTextField('Password', 'password', Icons.lock,
+                  obscure: true),
               SizedBox(height: 10),
-              _buildTextField('Confirm Password', 'confirmPassword', Icons.lock, obscure: true),
+              _buildTextField('Confirm Password', 'confirmPassword', Icons.lock,
+                  obscure: true),
               SizedBox(height: 20),
-              Text('Select Services:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('Select Services:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               _buildServiceCheckboxes(),
-             
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _isLoading ? null : _register,
-                child: _isLoading ? CircularProgressIndicator() : Text('Register'),
+                child:
+                    _isLoading ? CircularProgressIndicator() : Text('Register'),
               ),
             ],
           ),

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-
-// ignore: depend_on_referenced_packages
 import 'package:animations/animations.dart';
 import 'package:kidcare/admin/adminhomepage.dart';
 import 'package:kidcare/user/communitypage.dart';

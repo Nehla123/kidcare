@@ -208,7 +208,7 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
               ),
               SizedBox(height: 24),
 
-              // Profile Image
+           
               GestureDetector(
                 onTap: _pickImage,
                 child: CircleAvatar(
@@ -223,7 +223,7 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
               ),
               SizedBox(height: 20),
 
-              // Input Fields
+       
               _buildTextField(controller: _nameController, label: 'Full Name', icon: Icons.person),
               SizedBox(height: 16),
               _buildTextField(controller: _emailController, label: 'Email Address', icon: Icons.email, keyboardType: TextInputType.emailAddress),
