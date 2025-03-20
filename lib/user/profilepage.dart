@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kidcare/user/editprofilescreen.dart';
-import 'package:kidcare/user/userlogin.dart';
+import 'package:kidcare/login.dart';
 
 class ProfilePage extends StatelessWidget {
   final FirebaseAuth _auth = FirebaseAuth.instance;

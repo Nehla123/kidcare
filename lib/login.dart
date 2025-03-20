@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final uid = userCredential.user!.uid;
       DocumentSnapshot professionalDoc = await _firestore.collection('professionals').doc(uid).get();
       if (professionalDoc.exists) {
-        bool isApproved = professionalDoc['approved'];
+        bool isApproved = professionalDoc['approve'];
         if (!isApproved) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("No permission to login. Please contact admin.")),

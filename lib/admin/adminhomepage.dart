@@ -76,11 +76,11 @@ class UsersPage extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundImage: NetworkImage(user['profileImageUrl'] ?? ''),
+                      backgroundImage: NetworkImage(user['profileImage'] ?? ''),
                     ),
                     SizedBox(height: 10),
                     Text(
-                      user['firstName'] + ' ' + user['lastName'],
+                      user['name'] ,
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       textAlign: TextAlign.center,
                     ),
@@ -114,7 +114,7 @@ class _ProfessionalsListScreenState extends State<ProfessionalsListScreen> {
 
   // Update approval status function
   Future<void> _updateProfessionalApproval(String professionalId, bool approve) async {
-    await _firestore.collection('professionals').doc(professionalId).update({'approved': approve});
+    await _firestore.collection('professionals').doc(professionalId).update({'approve': approve});
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(approve ? "Professional approved" : "Professional rejected")),
     );
@@ -158,7 +158,7 @@ class _ProfessionalsListScreenState extends State<ProfessionalsListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(professional['qualification'] ?? 'No Qualification'),
-                      Text("Status: ${professional['approved'] ? "Approved" : "Pending"}"),
+                      Text("Status: ${professional['approve'] ? "Approved" : "Pending"}"),
                     ],
                   ),
                   trailing: Row(
