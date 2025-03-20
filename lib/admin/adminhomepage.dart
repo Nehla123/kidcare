@@ -13,7 +13,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   final List<Widget> _pages = [
     UsersPage(),
-    ProfessionalsPage(),
+    ProfessionalsListScreen(),
     AppointmentsPage(),
     ContentModerationPage(),
     FeedbackPage(),
@@ -102,23 +102,84 @@ class UsersPage extends StatelessWidget {
 }
 
 
-class ProfessionalsPage extends StatelessWidget {
+class ProfessionalsListScreen extends StatefulWidget {
+  const ProfessionalsListScreen({super.key});
+
+  @override
+  _ProfessionalsListScreenState createState() => _ProfessionalsListScreenState();
+}
+
+class _ProfessionalsListScreenState extends State<ProfessionalsListScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Update approval status function
+  Future<void> _updateProfessionalApproval(String professionalId, bool approve) async {
+    await _firestore.collection('professionals').doc(professionalId).update({'approved': approve});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(approve ? "Professional approved" : "Professional rejected")),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: FirebaseFirestore.instance.collection('professionals').snapshots(),
-      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
-        return ListView(
-          children: snapshot.data!.docs.map((professional) {
-            return ListTile(
-              leading: CircleAvatar(backgroundImage: NetworkImage(professional['profileImage'] ?? '')),
-              title: Text(professional['name']),
-              subtitle: Text(professional['qualification']),
-            );
-          }).toList(),
-        );
-      },
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Professionals List"),
+        centerTitle: true,
+        backgroundColor: Colors.black,
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _firestore.collection('professionals').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("No registered professionals found."));
+          }
+
+          List<DocumentSnapshot> professionals = snapshot.data!.docs;
+
+          return ListView(
+            children: professionals.map((professional) {
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: professional['profileImage'] != null && professional['profileImage'] != ''
+                        ? NetworkImage(professional['profileImage'])
+                        : const AssetImage('assets/default_profile.png') as ImageProvider,
+                  ),
+                  title: Text(
+                    professional['name'] ?? 'No Name',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(professional['qualification'] ?? 'No Qualification'),
+                      Text("Status: ${professional['approved'] ? "Approved" : "Pending"}"),
+                    ],
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.check, color: Colors.green),
+                        onPressed: () => _updateProfessionalApproval(professional.id, true),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.red),
+                        onPressed: () => _updateProfessionalApproval(professional.id, false),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
     );
   }
 }

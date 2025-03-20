@@ -1,18 +1,14 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cloudinary/cloudinary.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/material.dart';
 
 class ProfessionalRegistrationForm extends StatefulWidget {
+  const ProfessionalRegistrationForm({super.key});
+
   @override
   _ProfessionalRegistrationFormState createState() =>
       _ProfessionalRegistrationFormState();
