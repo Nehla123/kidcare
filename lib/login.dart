@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:kidcare/admin/adminhomepage.dart';
+import 'package:kidcare/forgotpage.dart';
 import 'package:kidcare/professional/professional%20homepage.dart';
 import 'package:kidcare/user/user%20homescreen.dart';
 
@@ -164,6 +165,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscureText: !passwordVisible,
                           validator: (value) => value!.isEmpty ? "Enter password" : null,
                           onSaved: (value) => password = value!,
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => ForgotPasswordScreen()));
+                          },
+                          child: Text(
+                            "Forgot Password?",
+                            style: TextStyle(color: Colors.blue),
+                          ),
                         ),
                         SizedBox(height: 24),
                         isLoading
